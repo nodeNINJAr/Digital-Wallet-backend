@@ -4,6 +4,7 @@ import { User } from "./user.model";
 import httpStatus from "http-status-codes";
 import bcrypt from "bcryptjs"
 import { envVars } from "../../config/env";
+import { createUserTokens } from "../../utils/userTokens";
 
 
 
@@ -19,7 +20,10 @@ const createUser =async(payload:Partial<IUser>)=>{
   }
  //  password hashing 
  const hashdPassword = await bcrypt.hash(password as string, Number(envVars.BCRIPT_SOLT_ROUND));
+ const userToken = createUserTokens(payload);
+  console.log(userToken);
 
+  
  //    
  const user = User.create({
     email,

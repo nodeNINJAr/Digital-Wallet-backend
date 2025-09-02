@@ -8,12 +8,16 @@ const router = Router();
 
 
 
-
-// **
+// **user router **
 router.post("/register", UserControllers.createUser);
 router.patch("/:id", UserControllers.updateUser);
 
 router.get("/", UserControllers.getAllUsers);
+// **
+
+
+
+
 
 
 
