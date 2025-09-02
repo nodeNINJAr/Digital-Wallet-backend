@@ -23,16 +23,16 @@ export enum IsActive{
 
 
 
-export interface Iuser{
+export interface IUser{
   name: string;
   email: string;
   phone?: string;
   password: string;
   picture?:string;
   role: Role;
-  isActive: IsActive;
-  isVerified:boolean;
-  agentStatus:AgentStatus;
+  isActive?: IsActive;
+  isVerified?:boolean;
+  agentStatus?:AgentStatus;
 }
 
 

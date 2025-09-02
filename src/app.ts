@@ -15,7 +15,7 @@ app.use(express.json());
 
 
 // base route
-// app.use("/api/v1/")
+app.use("/api/v1/", router)
 
 
 

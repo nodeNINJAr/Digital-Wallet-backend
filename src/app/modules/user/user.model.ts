@@ -1,10 +1,10 @@
 import { model, Schema } from "mongoose"
-import { AgentStatus, IsActive, Iuser, Role } from "./user.interface"
+import { AgentStatus, IsActive, IUser, Role } from "./user.interface"
 
 
 
 // 
-const userSchema = new Schema<Iuser>({
+const userSchema = new Schema<IUser>({
     name:{type:String, required:true},
     email:{type:String, required:true, unique:true},
     password:{type:String},
@@ -36,4 +36,4 @@ versionKey:false,
 })
 
 
-export const User = model<Iuser>("User", userSchema)
+export const User = model<IUser>("User", userSchema)
