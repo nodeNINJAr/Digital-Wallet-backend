@@ -1,53 +1,100 @@
 import AppError from "../../errorHelpers/AppError";
-import { IsActive, IUser } from "./user.interface";
+import { IsActive, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
 import httpStatus from "http-status-codes";
 import bcrypt from "bcryptjs"
 import { envVars } from "../../config/env";
-import { createUserTokens } from "../../utils/userTokens";
 import { Wallet } from "../wallet/wallet.model";
 import { Status, WalletType } from "../wallet/wallet.interface";
+import mongoose from "mongoose";
+import { Transaction } from "../transaction/transaction.model";
+import { IStatus, IType } from "../transaction/transaction.interfaces";
 
 
 
-// ** user creation
-const createUser =async(payload:Partial<IUser>)=>{
-   // payload from body
-   const {email, password, ...rest} = payload;
-  //checking if user is exist or not
-  const isUserExit = await User.findOne({email});
-  if(isUserExit){
-    throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist")
+
+
+// 
+const createUser = async (payload: Partial<IUser>) => {
+
+  const { email, password, role, ...rest } = payload;
+
+  const bonusBalance = 5000; // 50 TK in paisa
+
+  if (role === Role.ADMIN || role === Role.AGENT) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Can't create Admin/Agent manually");
   }
- //  password hashing 
- const hashdPassword = await bcrypt.hash(password as string, Number(envVars.BCRIPT_SOLT_ROUND));
- const userToken = createUserTokens(payload);
-  console.log(userToken);
 
-  
- //    
- const user = await User.create({
-    email,
-    password:hashdPassword,
-    ...rest,
- })
+  // check if user already exists
+  const isUserExist = await User.findOne({ email });
+  if (isUserExist) {
+    throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist");
+  }
 
-// add 5o tk to wallet
- const wallet = await Wallet.create({
-    user: user._id,
-    balance: Number("50"),
-    status:Status.ACTIVE,
-    walletType:WalletType.PERSONAL,
- })
+  // hash password
+  const hashedPassword = await bcrypt.hash(
+    password as string,
+    Number(envVars.BCRIPT_SOLT_ROUND)
+  );
 
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
+  try {
+    // create user
+    const user = await User.create(
+      [{ email, password: hashedPassword, role, ...rest }],
+      { session }
+    );
 
+    // find system/admin wallet
+    const adminWallet = await Wallet.findOne({ walletType: WalletType.SYSTEM }).session(session);
+    if (!adminWallet) throw new AppError(httpStatus.BAD_REQUEST, "System wallet not found");
 
-  return {
-    user,
-    wallet
-  };
-}
+    if (adminWallet.balance < bonusBalance) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Not enough balance in system wallet");
+    }
+
+    // deduct from system wallet
+    adminWallet.balance -= bonusBalance;
+    await adminWallet.save({ session });
+
+    // create user wallet with bonus balance
+    const wallet = await Wallet.create(
+      [{
+        user: user[0]._id,
+        balance: bonusBalance,
+        status: Status.ACTIVE,
+        walletType: WalletType.PERSONAL,
+      }],
+      { session }
+    );
+
+    // record transaction (bonus credit)
+    await Transaction.create([{
+      transactionId: `BONUS-${Date.now()}`,
+      type: IType.BONUS,
+      from: adminWallet._id,
+      to: wallet[0]._id,
+      amount: bonusBalance,
+      tranStatus:IStatus.COMPLETED,
+      initiatedBy: user[0]._id,
+      notes: "Welcome bonus",
+    }], { session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return {
+      user: user[0],
+      wallet: wallet[0],
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};
 
 
 

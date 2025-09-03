@@ -93,7 +93,6 @@ return transaction[0]
 
 
 
-
 // ** cash in
 const cashIn = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
     // 
@@ -140,7 +139,7 @@ const cashIn = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
     const transaction = await Transaction.create([
          {
           transactionId: `TXN-${Date.now()}`,
-          type:IType.WITHDRAW,
+          type:IType.CASH_IN,
           from:senderWallet._id,
           to:receiverWallet._id,
           amount:amountInPaisa,
@@ -213,7 +212,7 @@ const withdrawMoney = async(decodedToken:JwtPayload, payload:Partial<ITransactio
     const transaction = await Transaction.create([
          {
           transactionId: `TXN-${Date.now()}`,
-          type:IType.CASH_IN,
+          type:IType.WITHDRAW,
           from:senderWallet._id,
           to:agentWallet._id,
           amount:amountInPaisa,
