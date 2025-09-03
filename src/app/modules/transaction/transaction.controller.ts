@@ -16,7 +16,6 @@ const sendMoney = catchAsync(async(req:Request, res:Response , next:NextFunction
     // 
      const decodedToken = req.user;
      const result = await TransactionServices.sendMoney(decodedToken as JwtPayload , req.body);
- 
   //
  responseSender(res, {
    success:true,
@@ -31,8 +30,7 @@ const sendMoney = catchAsync(async(req:Request, res:Response , next:NextFunction
 const cashIn = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
 //    
   const decodedToken = req.user;
-
-  const result = await TransactionServices.sendMoney(decodedToken as JwtPayload , req.body);
+  const result = await TransactionServices.cashIn(decodedToken as JwtPayload , req.body);
  
   //
  responseSender(res, {
