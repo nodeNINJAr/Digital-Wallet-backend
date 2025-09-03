@@ -1,0 +1,21 @@
+import { checkVerified } from '../../middlewares/checkVerifiedUser';
+import { Role } from '../user/user.interface';
+import { TransactionController } from './transaction.controller';
+import { Router } from "express";
+
+
+
+const router = Router();
+
+
+// **wallet router **
+router.post("/send",checkVerified(Role.AGENT,Role.USER), TransactionController.sendMoney);
+router.post("/withdraw", TransactionController.withdraw);
+router.post("/cash-in", TransactionController.cashIn);
+router.get("/me", TransactionController.getMyTransactions);
+router.get("/", TransactionController.getAllTransactions); //only admin can access
+
+
+
+
+export const TransactionRoutes = router;
