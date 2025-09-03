@@ -5,6 +5,8 @@ import httpStatus from "http-status-codes";
 import bcrypt from "bcryptjs"
 import { envVars } from "../../config/env";
 import { createUserTokens } from "../../utils/userTokens";
+import { Wallet } from "../wallet/wallet.model";
+import { Status, WalletType } from "../wallet/wallet.interface";
 
 
 
@@ -24,13 +26,27 @@ const createUser =async(payload:Partial<IUser>)=>{
 
   
  //    
- const user = User.create({
+ const user = await User.create({
     email,
     password:hashdPassword,
     ...rest,
  })
 
-  return user;
+// add 5o tk to wallet
+ const wallet = await Wallet.create({
+    user: user._id,
+    balance: Number("50"),
+    status:Status.ACTIVE,
+    walletType:WalletType.PERSONAL,
+ })
+
+
+
+
+  return {
+    user,
+    wallet
+  };
 }
 
 
