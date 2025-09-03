@@ -61,8 +61,11 @@ const withdraw = catchAsync(async(req:Request, res:Response , next:NextFunction)
 
 // ** getMyTransactions
 const getMyTransactions = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
-
-  const result = await TransactionServices.sendMoney(req.params.id, req.body);
+    
+  //   
+  const decodedToken = req.user;
+  //   
+  const result = await TransactionServices.getMyTransactions(decodedToken as JwtPayload);
  
   //
  responseSender(res, {
@@ -74,16 +77,17 @@ const getMyTransactions = catchAsync(async(req:Request, res:Response , next:Next
 
 });
 
+
 // ** getAllTransactions
 const getAllTransactions = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
-
-  const result = await TransactionServices.sendMoney(req.params.id, req.body);
+  //   
+  const result = await TransactionServices.getAllTransactions();
  
   //
  responseSender(res, {
    success:true,
    statusCode:httpStatus.OK,
-   message:"All Transaction Reterived Successfully",
+   message:"All Transactions Reterived Successfully",
    data:result
 })
 

@@ -93,7 +93,7 @@ return transaction[0]
 //   notes?: string;
 
 
-// ** cash 
+// ** cash in
 const cashIn = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
     // 
     const session =await startSession();
@@ -113,13 +113,12 @@ const cashIn = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
       if(!receiverWallet || receiverWallet.walletType === WalletType.AGENT){
         throw new AppError(httpStatus.NOT_FOUND,!receiverWallet? "reciver walllet not found": `${receiverWallet.walletType} cant recived cash-in money`)
      }
-     
+
     // validation 3  blocked check
     if(senderWallet.status ===Status.BLOCKED || receiverWallet.status === Status.BLOCKED){
        throw new AppError(httpStatus.BAD_REQUEST, `${senderWallet.status === Status.BLOCKED && senderWallet.walletType} ${receiverWallet.status === Status.BLOCKED && receiverWallet} wallet Is Blocked`)  
     }
-     
-
+    
     // validation 4
     if((senderWallet.balance ?? 0) < (amount ?? 0)){
       throw new AppError(httpStatus.BAD_REQUEST,"Insufficient balance")
@@ -157,6 +156,35 @@ return transaction[0]
 
 }
 
+// * get my transaction
+const getMyTransactions = async(decodedToken:JwtPayload)=>{
+    //  
+     const isUserExist= await User.findById(decodedToken.userId)
+    if(!isUserExist){
+        throw new AppError(httpStatus.NOT_FOUND,"User Not Found")
+    }
+    // 
+     const isWalletExists = await Wallet.findOne({user:isUserExist._id});
+     //
+     const result = await Transaction.find({
+        $or:[
+            {to:isWalletExists?._id},
+            {from:isWalletExists?._id},
+        ]
+        })
+     return result
+}
+
+
+
+// * get my transaction
+const getAllTransactions = async()=>{
+   const result = await Transaction.find({});
+    return result
+}
+
+
+
 
 
 
@@ -164,5 +192,8 @@ return transaction[0]
 
 export const TransactionServices = {
         sendMoney,
-        cashIn
+        cashIn,
+        getMyTransactions,
+        getAllTransactions
+
 }
