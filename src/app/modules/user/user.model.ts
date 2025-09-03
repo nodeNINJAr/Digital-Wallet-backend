@@ -14,7 +14,7 @@ const userSchema = new Schema<IUser>({
         default:Role.USER,
     },
     phone:{type:String},
-    picture:{type:String},
+    picture:{type:String,},
     isActive:{
         type:String,
         enum:Object.values(IsActive),

@@ -10,7 +10,6 @@ import { createUserTokens } from "../../utils/userTokens";
 
 // ** user creation
 const createUser =async(payload:Partial<IUser>)=>{
-
    // payload from body
    const {email, password, ...rest} = payload;
   //checking if user is exist or not
@@ -27,7 +26,7 @@ const createUser =async(payload:Partial<IUser>)=>{
  //    
  const user = User.create({
     email,
-    hashdPassword,
+    password:hashdPassword,
     ...rest,
  })
 
