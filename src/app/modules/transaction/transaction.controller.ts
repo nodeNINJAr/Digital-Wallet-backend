@@ -44,9 +44,11 @@ const cashIn = catchAsync(async(req:Request, res:Response , next:NextFunction)=>
 
 
 // ** withdraw
-const withdraw = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
+const withdrawMoney = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
   
-  const result = await TransactionServices.sendMoney(req.params.id, req.body);
+  const decodedToken = req.user;
+
+  const result = await TransactionServices.withdrawMoney(decodedToken as JwtPayload, req.body);
  
   //
  responseSender(res, {
@@ -57,6 +59,8 @@ const withdraw = catchAsync(async(req:Request, res:Response , next:NextFunction)
 })
 
 });
+
+
 
 
 // ** getMyTransactions
@@ -97,7 +101,7 @@ const getAllTransactions = catchAsync(async(req:Request, res:Response , next:Nex
 export const TransactionController = {
       sendMoney,
       cashIn,
-      withdraw,
+      withdrawMoney,
       getMyTransactions,
       getAllTransactions,
 }
