@@ -52,8 +52,12 @@ const sendMoney = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=
     if((senderWallet.balance ?? 0) < (amount ?? 0)){
       throw new AppError(httpStatus.BAD_REQUEST,"Insufficient balance")
     }
-
-
+     
+    // 
+    const adminWallet = await Wallet.findOne({ walletType: WalletType.SYSTEM }).session(session);
+    if (!adminWallet) {
+        throw new AppError(httpStatus.NOT_FOUND, "Admin wallet not found");
+    }
 
 
     // ** detuct from sender wallet and add to reciver
@@ -61,9 +65,13 @@ const sendMoney = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=
     senderWallet.balance! -= Number(amountInPaisa + feeInPaisa)!
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     receiverWallet.balance! += Number(amountInPaisa)!
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    adminWallet.balance! += Number(feeInPaisa)!
+
     // 
     await senderWallet.save({session});
     await receiverWallet.save({session});
+    await adminWallet.save({session});
 
     // transaction
     const transaction = await Transaction.create([
@@ -72,7 +80,7 @@ const sendMoney = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=
           type:IType.SEND,
           from:senderWallet._id,
           to:receiverWallet._id,
-          amount:amount,
+          amount:amountInPaisa,
           fee:feeInPaisa,
           commission:0,
           tranStatus:IStatus.COMPLETED,
@@ -102,7 +110,8 @@ const cashIn = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
     const {to, amount} = payload; 
      // amount in paisa
     const amountInPaisa = toPaisa(amount as number);
-
+    const commission = Math.floor((amountInPaisa * 2) / 1000); //2 taka commition in 1000 tka cash in
+    
     // sender wallet
     const senderWallet = await Wallet.findOne({user:decodedToken.userId}).session(session);
     // ** validation 1
@@ -126,14 +135,24 @@ const cashIn = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
     if((senderWallet.balance ?? 0) < (amount ?? 0)){
       throw new AppError(httpStatus.BAD_REQUEST,"Insufficient balance")
     } 
+
+    const adminWallet = await Wallet.findOne({ walletType: WalletType.SYSTEM }).session(session);
+    if (!adminWallet) {
+        throw new AppError(httpStatus.NOT_FOUND, "Admin wallet not found");
+    }
+
     // detuct from sender/agent adding to personal user
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    senderWallet.balance! -= Number(amountInPaisa)!; 
+    senderWallet.balance! -= Number(amountInPaisa - commission)!; 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     receiverWallet.balance! += Number(amountInPaisa)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    adminWallet.balance! -= Number(commission)!
     
+    // 
     await senderWallet.save({session});
     await receiverWallet.save({session});
+    await adminWallet.save({session})
 
     // transaction
     const transaction = await Transaction.create([
@@ -144,7 +163,7 @@ const cashIn = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
           to:receiverWallet._id,
           amount:amountInPaisa,
           fee:0,
-          commission:0,
+          commission:commission,
           tranStatus:IStatus.COMPLETED,
           initiatedBy:senderWallet._id
          },
@@ -173,7 +192,14 @@ const withdrawMoney = async(decodedToken:JwtPayload, payload:Partial<ITransactio
     // amount in paisa
     const amountInPaisa = toPaisa(amount as number);
     const feeInPaisa = Math.round(amountInPaisa * 0.015); // 1.5% fee means 15 taka in 1000
+    const commission = Math.floor((feeInPaisa * 150) / 1000); // fee 15% for agent commission
+    const afterCommission = feeInPaisa - commission;
 
+    
+    // amount check
+    if(amountInPaisa < 5000){
+        throw new AppError(httpStatus.BAD_REQUEST,"Minimum withdrow is 50 taka")
+    }
 
     // sender wallet for withdraw
     const senderWallet = await Wallet.findOne({user:decodedToken.userId}).session(session);
@@ -198,14 +224,24 @@ const withdrawMoney = async(decodedToken:JwtPayload, payload:Partial<ITransactio
     if((senderWallet.balance ?? 0) < (amountInPaisa ?? 0)){
       throw new AppError(httpStatus.BAD_REQUEST,"Insufficient balance")
     } 
+
+    // 
+    const adminWallet = await Wallet.findOne({ walletType: WalletType.SYSTEM }).session(session);
+    if (!adminWallet) {
+        throw new AppError(httpStatus.NOT_FOUND, "Admin wallet not found");
+    }
+
     // detuct from sender/agent adding to personal user
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     senderWallet.balance! -= Number(amountInPaisa + feeInPaisa)!; 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    agentWallet.balance! += Number(amountInPaisa)!;
+    agentWallet.balance! += Number(amountInPaisa + commission)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    adminWallet.balance! += Number(afterCommission)!
 
     await senderWallet.save({session});
     await agentWallet.save({session});
+    await adminWallet.save({session});
 
 
     // transaction
@@ -217,7 +253,7 @@ const withdrawMoney = async(decodedToken:JwtPayload, payload:Partial<ITransactio
           to:agentWallet._id,
           amount:amountInPaisa,
           fee:feeInPaisa,
-          commission:0,
+          commission:commission,
           tranStatus:IStatus.COMPLETED,
           initiatedBy:senderWallet._id,
           notes

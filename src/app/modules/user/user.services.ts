@@ -36,7 +36,7 @@ const createUser = async (payload: Partial<IUser>) => {
     password as string,
     Number(envVars.BCRIPT_SOLT_ROUND)
   );
-
+  
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -122,9 +122,7 @@ const updateUser = async(userId: string, payload: Partial<IUser>)=>{
 
   return newUpdateUser;
 
-
 }
-
 
 
 
