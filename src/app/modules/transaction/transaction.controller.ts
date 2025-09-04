@@ -68,8 +68,18 @@ const getMyTransactions = catchAsync(async(req:Request, res:Response , next:Next
     
   //   
   const decodedToken = req.user;
+
+  const { page, limit, sortBy, sortOrder, ...filters} = req.query;
+ 
   //   
-  const result = await TransactionServices.getMyTransactions(decodedToken as JwtPayload);
+  const result = await TransactionServices.getMyTransactions(decodedToken as JwtPayload,
+    { 
+    page: Number(page) || 1,
+    limit: Number(limit) || 10,
+    sortBy: (sortBy as string) || "createdAt",
+    sortOrder: (sortOrder as "asc" | "desc") || "desc",
+    filters,
+  });
  
   //
  responseSender(res, {
@@ -84,8 +94,16 @@ const getMyTransactions = catchAsync(async(req:Request, res:Response , next:Next
 
 // ** getAllTransactions
 const getAllTransactions = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
+
+  const { page, limit, sortBy, sortOrder, ...filters} = req.query;
   //   
-  const result = await TransactionServices.getAllTransactions();
+  const result = await TransactionServices.getAllTransactions({
+    page: Number(page) || 1,
+    limit: Number(limit) || 10,
+    sortBy: (sortBy as string) || "createdAt",
+    sortOrder: (sortOrder as "asc" | "desc") || "desc",
+    filters,
+  });
  
   //
  responseSender(res, {

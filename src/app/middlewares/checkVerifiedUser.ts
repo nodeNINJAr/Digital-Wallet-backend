@@ -36,6 +36,7 @@ export const checkVerified = (...authRoles:string[])=>(async(req:Request, res:Re
           // 
         req.user = verifiedToken;
 
+
         // 
         next();
        //   

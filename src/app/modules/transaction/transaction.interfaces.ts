@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import mongoose from "mongoose";
 
 
@@ -6,7 +7,8 @@ export enum IType {
     CASH_IN="CASH_IN",
     CASH_OUT="CASH_OUT",
     SEND="SEND",
-    WITHDRAW="WITHDRAW"
+    WITHDRAW="WITHDRAW",
+    BONUS="BONUS"
 }
 
 

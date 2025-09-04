@@ -10,7 +10,8 @@ export enum Status{
 
 export enum WalletType{
     PERSONAL="PERSONAL",
-    AGENT="AGENT"
+    AGENT="AGENT",
+    SYSTEM="SYSTEM"
 }
 
 export interface IWallet{

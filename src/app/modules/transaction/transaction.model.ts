@@ -10,8 +10,7 @@ const transactionSchema = new Schema<ITransaction>(
   {
     transactionId: {
       type: String,
-      unique: true,
-      required: true,
+      unique: true
     },
     type: {
       type: String,
@@ -60,17 +59,15 @@ const transactionSchema = new Schema<ITransaction>(
 );
 
 
-
-
-// Auto-generate transactionId before save (e.g. TXN-20250831-xxxx)
+// Auto-generate transactionId before saving
 transactionSchema.pre("save", function (next) {
   if (!this.transactionId) {
-    this.transactionId =
-      "TXN-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
+    const random = Math.floor(1000 + Math.random() * 9000); // 4-digit random
+    const date = new Date().toISOString().replace(/[-T:.Z]/g, "").slice(0, 8); // YYYYMMDD
+    this.transactionId = `TXN-${date}-${random}`;
   }
   next();
 });
-
 
 
 

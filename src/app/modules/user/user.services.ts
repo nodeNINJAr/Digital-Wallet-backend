@@ -1,53 +1,102 @@
 import AppError from "../../errorHelpers/AppError";
-import { IsActive, IUser } from "./user.interface";
+import { AgentStatus, IsActive, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
 import httpStatus from "http-status-codes";
 import bcrypt from "bcryptjs"
 import { envVars } from "../../config/env";
-import { createUserTokens } from "../../utils/userTokens";
 import { Wallet } from "../wallet/wallet.model";
 import { Status, WalletType } from "../wallet/wallet.interface";
+import mongoose from "mongoose";
+import { Transaction } from "../transaction/transaction.model";
+import { IStatus, IType } from "../transaction/transaction.interfaces";
+import { JwtPayload } from "jsonwebtoken";
+import { GetAllOptions } from "../../interfaces/paginationInterfaces";
 
 
 
-// ** user creation
-const createUser =async(payload:Partial<IUser>)=>{
-   // payload from body
-   const {email, password, ...rest} = payload;
-  //checking if user is exist or not
-  const isUserExit = await User.findOne({email});
-  if(isUserExit){
-    throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist")
+
+
+// 
+const createUser = async (payload: Partial<IUser>) => {
+
+  const { email, password, role, ...rest } = payload;
+
+  const bonusBalance = 5000; // 50 TK in paisa
+
+  if (role === Role.ADMIN || role === Role.AGENT) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Can't create Admin/Agent manually");
   }
- //  password hashing 
- const hashdPassword = await bcrypt.hash(password as string, Number(envVars.BCRIPT_SOLT_ROUND));
- const userToken = createUserTokens(payload);
-  console.log(userToken);
 
+  // check if user already exists
+  const isUserExist = await User.findOne({ email });
+  if (isUserExist) {
+    throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist");
+  }
+
+  // hash password
+  const hashedPassword = await bcrypt.hash(
+    password as string,
+    Number(envVars.BCRIPT_SOLT_ROUND)
+  );
   
- //    
- const user = await User.create({
-    email,
-    password:hashdPassword,
-    ...rest,
- })
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-// add 5o tk to wallet
- const wallet = await Wallet.create({
-    user: user._id,
-    balance: Number("50"),
-    status:Status.ACTIVE,
-    walletType:WalletType.PERSONAL,
- })
+  try {
+    // create user
+    const user = await User.create(
+      [{ email, password: hashedPassword, role, ...rest }],
+      { session }
+    );
 
+    // find system/admin wallet
+    const adminWallet = await Wallet.findOne({ walletType: WalletType.SYSTEM }).session(session);
+    if (!adminWallet) throw new AppError(httpStatus.BAD_REQUEST, "System wallet not found");
 
+    if (adminWallet.balance < bonusBalance) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Not enough balance in system wallet");
+    }
 
+    // deduct from system wallet
+    adminWallet.balance -= bonusBalance;
+    await adminWallet.save({ session });
 
-  return {
-    user,
-    wallet
-  };
-}
+    // create user wallet with bonus balance
+    const wallet = await Wallet.create(
+      [{
+        user: user[0]._id,
+        balance: bonusBalance,
+        status: Status.ACTIVE,
+        walletType: WalletType.PERSONAL,
+      }],
+      { session }
+    );
+
+    // record transaction (bonus credit)
+    await Transaction.create([{
+      transactionId: `BONUS-${Date.now()}`,
+      type: IType.BONUS,
+      from: adminWallet._id,
+      to: wallet[0]._id,
+      amount: bonusBalance,
+      tranStatus:IStatus.COMPLETED,
+      initiatedBy: user[0]._id,
+      notes: "Welcome bonus",
+    }], { session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return {
+      user: user[0],
+      wallet: wallet[0],
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+};
 
 
 
@@ -75,27 +124,84 @@ const updateUser = async(userId: string, payload: Partial<IUser>)=>{
 
   return newUpdateUser;
 
-
 }
 
 
+// ** update agentstus
+const agentStatusUpdate = async (decodedToken: JwtPayload) => {
+
+  const isUserExist = await User.findById(decodedToken.userId);
+
+  if (!isUserExist) {
+    throw new AppError(httpStatus.NOT_FOUND, "User Not Found");
+  }
+
+  if (isUserExist.isActive === IsActive.BLOCKED || isUserExist.isActive === IsActive.INACTIVE) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      `User is ${isUserExist.isActive}, please make your account active`
+    );
+  }
+
+  if(isUserExist.role=== Role.AGENT){
+    throw new AppError(httpStatus.BAD_REQUEST,"Your Are All ready an agent")
+  }
+
+  const updatedAgent = await User.findByIdAndUpdate(
+    decodedToken.userId,
+    { agentStatus: AgentStatus.PENDING },
+    { new: true, runValidators: true }
+  );
+
+  return updatedAgent;
+};
 
 
 
-// ** get all user
-const getAllUsers = async()=>{
-    // 
-    const users = await User.find({});
-    // total users
-    const totalUser = await User.countDocuments();
 
-    return{
-        data:users,
-        meta:{
-            total:totalUser
-        }
-    }
-}
+// ** get all users
+const getAllUsers = async (options: GetAllOptions = {}) => {
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+    searchTerm,
+    filters = {},
+  } = options;
+
+  const skip = (page - 1) * limit;
+
+  // query
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query: Record<string, any> = { ...filters };
+
+  // add text search across fields
+  if (searchTerm) {
+    query.$or = [
+      { name: { $regex: searchTerm, $options: "i" } },
+      { email: { $regex: searchTerm, $options: "i" } },
+      { phone: { $regex: searchTerm, $options: "i" } },
+    ];
+  }
+
+  const users = await User.find(query)
+    .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalUser = await User.countDocuments(query);
+
+  return {
+    data: users,
+    meta: {
+      page,
+      limit,
+      total: totalUser,
+      totalPages: Math.ceil(totalUser / limit),
+    },
+  };
+};
 
 
 
@@ -103,6 +209,7 @@ export const UserServices={
     createUser,
     getAllUsers,
     updateUser,
+    agentStatusUpdate
 
 
 }

@@ -13,8 +13,8 @@ interface EnvConfig {
   JWT_REFRESH_SECRET:string;
   JWT_REFRESH_EXPIRES:string;
   EXPRESS_SESSION_SECRET:string;
-
-
+  ADMIN_EMAIL:string,
+  ADMIN_PASS:string,
 
 
 }
@@ -24,7 +24,7 @@ interface EnvConfig {
 const loadEnvVariables = ():EnvConfig=>{
 
     const requiredEnvVariables:string[] = ["PORT","MONGODB_URL","NODE_ENV","BCRIPT_SOLT_ROUND","JWT_ACCESS_SECRET",
-      "JWT_ACCESS_EXPIRES","JWT_REFRESH_SECRET","JWT_REFRESH_EXPIRES","EXPRESS_SESSION_SECRET"];
+      "JWT_ACCESS_EXPIRES","JWT_REFRESH_SECRET","JWT_REFRESH_EXPIRES","EXPRESS_SESSION_SECRET","ADMIN_EMAIL","ADMIN_PASS"];
 
     requiredEnvVariables.forEach((key)=>{
          if(!process.env[key]){
@@ -42,6 +42,8 @@ const loadEnvVariables = ():EnvConfig=>{
     JWT_REFRESH_SECRET:process.env.JWT_REFRESH_SECRET as string,
     JWT_REFRESH_EXPIRES:process.env.JWT_REFRESH_EXPIRES as string,
     EXPRESS_SESSION_SECRET:process.env.EXPRESS_SESSION_SECRET as string,
+    ADMIN_EMAIL:process.env.ADMIN_EMAIL as string,
+    ADMIN_PASS:process.env.ADMIN_PASS as string,
 
   }
 

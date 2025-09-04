@@ -11,8 +11,9 @@ const router = Router();
 
 // **wallet router **
 router.get("/me", checkVerified(Role.AGENT, Role.USER), WalletController.getWallet);
-router.patch("/block/:id",checkVerified(Role.ADMIN, Role.USER), WalletController.updateWalletStatus);
-router.patch("/agents/:id/approve",checkVerified(Role.ADMIN, Role.USER), WalletController.updateWalletType);
+router.patch("/block/:id",checkVerified(Role.ADMIN), WalletController.updateWalletStatus);
+router.patch("/agents/:id/approve",checkVerified(Role.ADMIN), WalletController.updateWalletType);
+router.patch("/agents/:id/suspend",checkVerified(Role.ADMIN), WalletController.suspendAgentStatus);
 
 
 
