@@ -10,7 +10,7 @@ import mongoose from "mongoose";
 import { Transaction } from "../transaction/transaction.model";
 import { IStatus, IType } from "../transaction/transaction.interfaces";
 import { JwtPayload } from "jsonwebtoken";
-import { GetAllUsersOptions } from "../../interfaces/paginationInterfaces";
+import { GetAllOptions } from "../../interfaces/paginationInterfaces";
 
 
 
@@ -160,7 +160,7 @@ const agentStatusUpdate = async (decodedToken: JwtPayload) => {
 
 
 // ** get all users
-const getAllUsers = async (options: GetAllUsersOptions = {}) => {
+const getAllUsers = async (options: GetAllOptions = {}) => {
   const {
     page = 1,
     limit = 10,

@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 
-
-export interface GetAllUsersOptions {
+export interface GetAllOptions {
   page?: number;
   limit?: number;
   sortBy?: string;
