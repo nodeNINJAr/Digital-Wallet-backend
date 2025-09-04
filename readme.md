@@ -2,11 +2,18 @@
 
 A **Digital Wallet System** built with **Node.js**, **Express**, and **MongoDB** that allows users to send and receive funds, manage wallets, and track transactions with proper authentication and authorization.
 
+[Live backend Domain Link]:(https://digital-wallet-backend-sigma.vercel.app/)
+
+[Postman-testing-link:](https://web.postman.co/workspace/My-Workspace~45a83938-7975-4adf-889e-84300d1f71d4/collection/40173815-838fece3-4330-4f8e-bcf4-03cfaef89359?action=share&source=copy-link&creator=40173815)
+
+
+[Api Docs With Routes]:(https://docs.google.com/document/d/1yxpyT1NXPX23i-rtYfDRmAbfG3qGy0nrBcQLCkMpBm8/edit?usp=sharing)
 ---
 
 ## 📝 Table of Contents
 
 - [Digital Wallet System](#digital-wallet-system)
+  - [Api Docs With Routes:(https://docs.google.com/document/d/1yxpyT1NXPX23i-rtYfDRmAbfG3qGy0nrBcQLCkMpBm8/edit?usp=sharing)](#api-docs-with-routeshttpsdocsgooglecomdocumentd1yxpyt1nxpx23i-rtyfdrmabfg3qgy0nrbcqlckmpbm8edituspsharing)
   - [📝 Table of Contents](#-table-of-contents)
   - [✨ Features](#-features)
   - [🛠 Tech Stack](#-tech-stack)
@@ -88,30 +95,30 @@ ADMIN_PASS=password
 📦 API Endpoints
 Auth Routes
 
-POST /api/auth/register – Register a new user
+POST /api/v1/auth/register – Register a new user
 
-POST /api/auth/login – Login user and get JWT
+POST /api/v1/auth/login – Login user and get JWT
 
 User Routes
 
-GET /api/users – Get all users (Admin only, supports pagination & sorting)
+GET /api/v1/user – Get all users (Admin only, supports pagination & sorting)
 
-PATCH /api/users/agent-status – Update agent status to PENDING
+PATCH /api/v1/user/agent-status – Update agent status to PENDING
 
 Wallet Routes
 
-GET /api/wallets/me – Get logged-in user wallet
+GET /api/v1/wallets/me – Get logged-in user wallet
 
-POST /api/wallets/transactions – Transfer money to another wallet
+POST /api/v1/wallets/transactions – Transfer money to another wallet
 
 Transaction Routes
 
-GET /api/transactions – Get all transactions (Admin, supports pagination & sorting)
+GET /api/v1/transactions – Get all transactions (Admin, supports pagination & sorting)
 
-GET /api/transactions/me – Get logged-in user transactions
+GET /api/v1/transactions/me – Get logged-in user transactions
 
 Pagination & sorting example:
-/api/transactions/me?page=2&limit=10&sortBy=amount&sortOrder=asc
+/api/v1/transactions/me?page=2&limit=10&sortBy=amount&sortOrder=asc
 
 ⚡ Usage
 
@@ -129,7 +136,7 @@ Admin users can fetch all users, while normal users can view their own wallet an
 
 🎥 Video Explanation
 
-Watch the full video explanation of the project here:
+Watch the full video explanation of the project here:https://drive.google.com/file/d/1lcXZs5jZWK-qYmyyAvDvM6zshcpQPBrb/view?usp=sharing
 
 
 📌 Notes

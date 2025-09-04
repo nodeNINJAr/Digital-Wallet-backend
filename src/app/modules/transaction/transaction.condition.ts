@@ -1,6 +1,6 @@
 
 
 
-export const sendMoneyTransactionCondition =(senderWallet)=>{
+// export const sendMoneyTransactionCondition =(senderWallet)=>{
      
-}
+// }

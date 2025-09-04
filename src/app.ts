@@ -8,6 +8,7 @@ import "./app/config/passport"
 import passport from "passport";
 import expressSession from "express-session"
 import { envVars } from "./app/config/env";
+import cors from "cors"
 
 
 
@@ -23,6 +24,11 @@ app.use(expressSession({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(
+  cors({
+    origin: ['http://localhost:5173']
+   })
+);
 app.use(express.json());
 app.use(cookieParser())
 
