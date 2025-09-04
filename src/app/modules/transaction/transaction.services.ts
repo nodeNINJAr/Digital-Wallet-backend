@@ -3,7 +3,6 @@ import { IStatus, ITransaction, IType } from "./transaction.interfaces"
 import AppError from "../../errorHelpers/AppError";
 import httpStatus from "http-status-codes"
 import { Wallet } from "../wallet/wallet.model";
-import { Role } from "../user/user.interface";
 import { Status, WalletType } from "../wallet/wallet.interface";
 import { startSession } from "mongoose";
 import { Transaction } from "./transaction.model";
@@ -77,7 +76,6 @@ const sendMoney = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=
     // transaction
     const transaction = await Transaction.create([
          {
-          transactionId: `TXN-${Date.now()}`,
           type:IType.SEND,
           from:senderWallet._id,
           to:receiverWallet._id,
@@ -158,7 +156,6 @@ const cashIn = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
     // transaction
     const transaction = await Transaction.create([
          {
-          transactionId: `TXN-${Date.now()}`,
           type:IType.CASH_IN,
           from:senderWallet._id,
           to:receiverWallet._id,
@@ -381,6 +378,4 @@ export const TransactionServices = {
         getMyTransactions,
         getAllTransactions,
         withdrawMoney
-
-
 }

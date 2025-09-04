@@ -21,7 +21,6 @@ import { JwtPayload } from "jsonwebtoken";
 // }
 
 
-// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
 const getWallet = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
   //  
   const decodedToken = req.user;
