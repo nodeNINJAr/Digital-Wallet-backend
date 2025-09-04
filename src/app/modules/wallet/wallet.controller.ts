@@ -69,10 +69,29 @@ const updateWalletType = catchAsync(async(req:Request, res:Response , next:NextF
 })
 
 
+// ** suspendAgentStatus
+
+const suspendAgentStatus = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
+
+  const result = await WalletServices.updateWalletType(req.params.id, req.body);
+ 
+  //
+ responseSender(res, {
+   success:true,
+   statusCode:httpStatus.CREATED,
+   message:`Agent gentally sunpended by admin due to some reason`,
+   data:result
+})
+
+})
+
+
+
 
 export const WalletController ={
     // createDeposit,
     getWallet,
     updateWalletStatus,
-    updateWalletType
+    updateWalletType,
+    suspendAgentStatus
 }

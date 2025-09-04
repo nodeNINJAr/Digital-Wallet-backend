@@ -5,6 +5,7 @@ import { catchAsync } from "../../utils/catchAsync"
 import { responseSender } from "../../utils/responseSender"
 import httpStatus from "http-status-codes"
 import { UserServices } from "./user.services"
+import { JwtPayload } from "jsonwebtoken"
 
 
 
@@ -27,14 +28,6 @@ const createUser =  catchAsync(async(req:Request, res:Response , next:NextFuncti
 // **
 
 
-
-
-
-
-
-
-
-
 // ** user data update
 const updateUser =  catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
        
@@ -44,6 +37,23 @@ const updateUser =  catchAsync(async(req:Request, res:Response , next:NextFuncti
    success:true,
    statusCode:httpStatus.CREATED,
    message:"User updated Successfully",
+   data:user,
+})
+
+})
+
+
+// agent status update
+const agentStatusUpdate = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
+   const decodedToken = req.user as JwtPayload;
+  //  
+   const user = await UserServices.agentStatusUpdate(decodedToken as JwtPayload);
+ 
+   //
+ responseSender(res, {
+   success:true,
+   statusCode:httpStatus.CREATED,
+   message:"AgentStatus updated to pending",
    data:user,
 })
 
@@ -71,6 +81,7 @@ const getAllUsers = catchAsync(async(req:Request, res:Response, next:NextFunctio
 export const UserControllers ={
     createUser,
     getAllUsers,
-    updateUser
+    updateUser,
+    agentStatusUpdate
 
 }

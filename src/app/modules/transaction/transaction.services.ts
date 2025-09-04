@@ -196,11 +196,6 @@ const withdrawMoney = async(decodedToken:JwtPayload, payload:Partial<ITransactio
     const afterCommission = feeInPaisa - commission;
 
     
-    // amount check
-    if(amountInPaisa < 5000){
-        throw new AppError(httpStatus.BAD_REQUEST,"Minimum withdrow is 50 taka")
-    }
-
     // sender wallet for withdraw
     const senderWallet = await Wallet.findOne({user:decodedToken.userId}).session(session);
     // ** validation 1
@@ -217,9 +212,12 @@ const withdrawMoney = async(decodedToken:JwtPayload, payload:Partial<ITransactio
 
     // validation 3  blocked check
     if(senderWallet.status ===Status.BLOCKED || agentWallet.status === Status.BLOCKED){
-       throw new AppError(httpStatus.BAD_REQUEST, `${senderWallet.status === Status.BLOCKED && senderWallet.walletType} ${agentWallet.status === Status.BLOCKED && agentWallet} wallet Is Blocked`)  
+       throw new AppError(httpStatus.BAD_REQUEST, `This ${senderWallet.status === Status.BLOCKED ? senderWallet.walletType:""} ${agentWallet.status === Status.BLOCKED ? agentWallet : ""} wallet Is Blocked`)  
     }
-    
+    // amount check
+    if(amountInPaisa < 5000){
+        throw new AppError(httpStatus.BAD_REQUEST,"Minimum withdrow is 50 taka")
+    }
     // validation 4
     if((senderWallet.balance ?? 0) < (amountInPaisa ?? 0)){
       throw new AppError(httpStatus.BAD_REQUEST,"Insufficient balance")
@@ -284,7 +282,7 @@ const getMyTransactions = async(decodedToken:JwtPayload)=>{
      const isWalletExists = await Wallet.findOne({user:isUserExist._id});
     // blocked check
     if(isWalletExists?.status === Status.BLOCKED){
-       throw new AppError(httpStatus.BAD_REQUEST, `${isWalletExists.status === Status.BLOCKED && isWalletExists.walletType} wallet Is Blocked`)  
+       throw new AppError(httpStatus.BAD_REQUEST, `This ${isWalletExists.status === Status.BLOCKED && isWalletExists.walletType} wallet Is Blocked`)  
     }
 
      //

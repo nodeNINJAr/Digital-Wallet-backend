@@ -1,5 +1,5 @@
 import AppError from "../../errorHelpers/AppError";
-import { IsActive, IUser, Role } from "./user.interface";
+import { AgentStatus, IsActive, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
 import httpStatus from "http-status-codes";
 import bcrypt from "bcryptjs"
@@ -9,6 +9,7 @@ import { Status, WalletType } from "../wallet/wallet.interface";
 import mongoose from "mongoose";
 import { Transaction } from "../transaction/transaction.model";
 import { IStatus, IType } from "../transaction/transaction.interfaces";
+import { JwtPayload } from "jsonwebtoken";
 
 
 
@@ -125,6 +126,38 @@ const updateUser = async(userId: string, payload: Partial<IUser>)=>{
 }
 
 
+// ** update agentstus
+const agentStatusUpdate = async (decodedToken: JwtPayload) => {
+
+  const isUserExist = await User.findById(decodedToken.userId);
+
+  if (!isUserExist) {
+    throw new AppError(httpStatus.NOT_FOUND, "User Not Found");
+  }
+
+  if (isUserExist.isActive === IsActive.BLOCKED || isUserExist.isActive === IsActive.INACTIVE) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      `User is ${isUserExist.isActive}, please make your account active`
+    );
+  }
+
+  if(isUserExist.role=== Role.AGENT){
+    throw new AppError(httpStatus.BAD_REQUEST,"Your Are All ready an agent")
+  }
+
+  const updatedAgent = await User.findByIdAndUpdate(
+    decodedToken.userId,
+    { agentStatus: AgentStatus.PENDING },
+    { new: true, runValidators: true }
+  );
+
+  return updatedAgent;
+};
+
+
+
+
 
 
 // ** get all user
@@ -148,6 +181,7 @@ export const UserServices={
     createUser,
     getAllUsers,
     updateUser,
+    agentStatusUpdate
 
 
 }
