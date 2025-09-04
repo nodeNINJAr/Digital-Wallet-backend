@@ -10,6 +10,7 @@ import mongoose from "mongoose";
 import { Transaction } from "../transaction/transaction.model";
 import { IStatus, IType } from "../transaction/transaction.interfaces";
 import { JwtPayload } from "jsonwebtoken";
+import { GetAllUsersOptions } from "../../interfaces/paginationInterfaces";
 
 
 
@@ -158,22 +159,49 @@ const agentStatusUpdate = async (decodedToken: JwtPayload) => {
 
 
 
+// ** get all users
+const getAllUsers = async (options: GetAllUsersOptions = {}) => {
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = "createdAt",
+    sortOrder = "desc",
+    searchTerm,
+    filters = {},
+  } = options;
 
+  const skip = (page - 1) * limit;
 
-// ** get all user
-const getAllUsers = async()=>{
-    // 
-    const users = await User.find({});
-    // total users
-    const totalUser = await User.countDocuments();
+  // query
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query: Record<string, any> = { ...filters };
 
-    return{
-        data:users,
-        meta:{
-            total:totalUser
-        }
-    }
-}
+  // add text search across fields
+  if (searchTerm) {
+    query.$or = [
+      { name: { $regex: searchTerm, $options: "i" } },
+      { email: { $regex: searchTerm, $options: "i" } },
+      { phone: { $regex: searchTerm, $options: "i" } },
+    ];
+  }
+
+  const users = await User.find(query)
+    .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const totalUser = await User.countDocuments(query);
+
+  return {
+    data: users,
+    meta: {
+      page,
+      limit,
+      total: totalUser,
+      totalPages: Math.ceil(totalUser / limit),
+    },
+  };
+};
 
 
 

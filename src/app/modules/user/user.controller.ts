@@ -61,19 +61,29 @@ const agentStatusUpdate = catchAsync(async(req:Request, res:Response , next:Next
 
 
 
+
+
 // ** get alluser
-const getAllUsers = catchAsync(async(req:Request, res:Response, next:NextFunction)=>{
+const getAllUsers = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const { page, limit, sortBy, sortOrder, searchTerm, ...filters } = req.query;
 
-      const result = await UserServices.getAllUsers();
+  const result = await UserServices.getAllUsers({
+    page: Number(page) || 1,
+    limit: Number(limit) || 10,
+    sortBy: (sortBy as string) || "createdAt",
+    sortOrder: (sortOrder as "asc" | "desc") || "desc",
+    searchTerm: searchTerm as string,
+    filters, // role, isActive, etc. will go here
+  });
 
-      responseSender(res,{
-            success:true,
-            statusCode:httpStatus.OK,
-            message:"User Retrived Successfully",
-            data:result.data,
-            meta:result.meta
-      })
-})
+  responseSender(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Users retrieved successfully",
+    data: result.data,
+    meta: result.meta,
+  });
+});
 
 
 
