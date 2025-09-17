@@ -10,6 +10,10 @@ A **Digital Wallet System** built with **Node.js**, **Express**, and **MongoDB**
 [Api Docs With Routes]:(https://docs.google.com/document/d/1yxpyT1NXPX23i-rtYfDRmAbfG3qGy0nrBcQLCkMpBm8/edit?usp=sharing)
 ---
 
+🎥 Video Explanation
+
+Watch the full video explanation of the project here:https://drive.google.com/file/d/1lcXZs5jZWK-qYmyyAvDvM6zshcpQPBrb/view?usp=sharing
+
 ## 📝 Table of Contents
 
 - [Digital Wallet System](#digital-wallet-system)
@@ -132,11 +136,6 @@ Authorization: Bearer <your_jwt_token>
 Admin users can fetch all users, while normal users can view their own wallet and transaction history.
 
 📁 Folder Structure
-
-
-🎥 Video Explanation
-
-Watch the full video explanation of the project here:https://drive.google.com/file/d/1lcXZs5jZWK-qYmyyAvDvM6zshcpQPBrb/view?usp=sharing
 
 
 📌 Notes
