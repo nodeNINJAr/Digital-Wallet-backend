@@ -5,12 +5,12 @@ import { AgentStatus, IsActive, Role } from "./user.interface";
 //Create Zod schema
 export const createUserZodSchema = z.object({
   name: z
-    .string({ invalid_type_error: "Name must be a string" })
+    .string({ message: "Name must be a string" })
     .min(2, { message: "Name must be at least 2 characters long" })
     .max(50, { message: "Name cannot exceed 50 characters" }),
 
  email: z
-    .string({ invalid_type_error: "Email must be a string" })
+    .string({ message: "Email must be a string" })
     .trim()
     .toLowerCase()
     .email({ message: "Invalid email address" })
@@ -48,7 +48,7 @@ export const createUserZodSchema = z.object({
 
 export const updateUserZodSchema = z.object({
   name: z
-    .string({ invalid_type_error: "Name must be a string" })
+    .string({ message: "Name must be a string" })
     .min(2, { message: "Name must be at least 2 characters long" })
     .max(50, { message: "Name cannot exceed 50 characters" })
     .optional(),

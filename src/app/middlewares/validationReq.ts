@@ -8,7 +8,7 @@ try{
              
   req.body = await zodSchema.parseAsync(req.body);
     next();
-    console.log(req.body);  
+    // console.log(req.body);  
 
   }catch(err){
     next(err)
