@@ -53,11 +53,11 @@ export const updateUserZodSchema = z.object({
     .max(50, { message: "Name cannot exceed 50 characters" })
     .optional(),
   
-    phone: z
+  phone: z
     .string()
     .optional()
     .refine((val) => !val || /^\+880\d{9}$/.test(val), {
-        message: "Phone must be a valid Bangladeshi number starting with +880",
+      message: "Phone must be a valid Bangladeshi number starting with +880 and have 11 digits",
     }),
 
   password: z

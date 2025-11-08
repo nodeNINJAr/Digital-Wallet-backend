@@ -7,10 +7,6 @@ import httpStatus from "http-status-codes"
 import { envVars } from "../../config/env";
 
 
-
-
-
-
 // **
 const getNewAccessToken = async(refreshToken:string)=>{
   const newAccessToken = await createNewAccessTokenByRefreshToken(refreshToken)
@@ -19,7 +15,6 @@ const getNewAccessToken = async(refreshToken:string)=>{
 return {
    accessToken:newAccessToken
 }
-
 //  
 }
 

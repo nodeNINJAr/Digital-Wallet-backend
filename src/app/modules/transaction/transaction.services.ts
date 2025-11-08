@@ -9,12 +9,16 @@ import { Transaction } from "./transaction.model";
 import { User } from "../user/user.model";
 import { toPaisa } from "../../utils/money";
 import { GetAllOptions } from "../../interfaces/paginationInterfaces";
+import mongoose from "mongoose";
+
+
+
 
 
 
 // ** send money
 const sendMoney = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
-       
+    // 
     const session =await startSession();
     session.startTransaction();
       
@@ -37,7 +41,7 @@ const sendMoney = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=
     // find reciver walllet
      const reciverUser = await User.findOne({email:to});
      const receiverWallet = await Wallet.findOne({user:reciverUser?._id}).session(session);
-
+     
       // validation 2 
      if(!receiverWallet){
         throw new AppError(httpStatus.NOT_FOUND,"Reciver wallet Not Found")
@@ -270,60 +274,56 @@ const withdrawMoney = async(decodedToken:JwtPayload, payload:Partial<ITransactio
 // * get my transaction
 const getMyTransactions = async (
   decodedToken: JwtPayload,
-  options: GetAllOptions
+  options: {
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    filters?: Record<string, any>;
+    search?: string;
+  }
 ) => {
-  const {
-    page = 1,
-    limit = 10,
-    sortBy = "createdAt",
-    sortOrder = "desc",
-    filters = {},
-  } = options;
-
+  const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc', filters = {}, search } = options;
   const skip = (page - 1) * limit;
+  // Find user
+  const user = await User.findById(decodedToken.userId);
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User Not Found');
 
-  // Check user
-  const isUserExist = await User.findById(decodedToken.userId);
-  if (!isUserExist) {
-    throw new AppError(httpStatus.NOT_FOUND, "User Not Found");
-  }
+  // Find wallet
+  const wallet = await Wallet.findOne({ user: user._id });
+  if (!wallet) throw new AppError(httpStatus.NOT_FOUND, 'Wallet Not Found');
+  if (wallet.status === 'BLOCKED') throw new AppError(httpStatus.BAD_REQUEST, 'Wallet is blocked');
+  
+  const objectId = new mongoose.Types.ObjectId(wallet?._id);
+  // Build query
+  const query: any = {
+   $or: [{ from: objectId }, { to: objectId }],
+    ...filters
+  };
 
-  // Check wallet
-  const isWalletExists = await Wallet.findOne({ user: isUserExist._id });
-  if (!isWalletExists) {
-    throw new AppError(httpStatus.NOT_FOUND, "Wallet Not Found");
-  }
-
-  // Blocked wallet check
-  if (isWalletExists.status === Status.BLOCKED) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      `This ${isWalletExists.walletType} wallet is blocked`
+  // Add search
+  if (search) {
+    query.$or.push(
+      { transactionId: { $regex: search, $options: 'i' } },
+      { type: { $regex: search, $options: 'i' } },
+      { notes: { $regex: search, $options: 'i' } }
     );
   }
 
   // Fetch transactions
-  const query = {
-    $or: [
-      { to: isWalletExists._id },
-      { from: isWalletExists._id },
-    ],
-    ...filters, // optional extra filters
-  };
-
   const transactions = await Transaction.find(query)
-    .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+    .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
     .skip(skip)
     .limit(limit);
 
   const total = await Transaction.countDocuments(query);
 
   return {
-    data: transactions,
+    transactions,
     meta: {
+      total,
       page,
       limit,
-      total,
       totalPages: Math.ceil(total / limit),
     },
   };
@@ -331,7 +331,8 @@ const getMyTransactions = async (
 
 
 
-// * get my transaction
+
+// * get all transaction
 const getAllTransactions = async (options:GetAllOptions) => {
 
 // 
@@ -377,5 +378,6 @@ export const TransactionServices = {
         cashIn,
         getMyTransactions,
         getAllTransactions,
-        withdrawMoney
+        withdrawMoney,
+
 }

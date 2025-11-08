@@ -19,49 +19,71 @@ import { GetAllOptions } from "../../interfaces/paginationInterfaces";
 // 
 const createUser = async (payload: Partial<IUser>) => {
 
-  const { email, password, role, ...rest } = payload;
+  const { email, password, role, phone, ...rest } = payload;
 
+  // Define the bonus balance
   const bonusBalance = 5000; // 50 TK in paisa
 
-  if (role === Role.ADMIN || role === Role.AGENT) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Can't create Admin/Agent manually");
+  // Prevent creation of Admin role manually
+  if (role === Role.ADMIN) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Can't create Admin manually");
   }
 
-  // check if user already exists
-  const isUserExist = await User.findOne({ email });
+  // Check if the user already exists based on email or phone
+  const isUserExist = await User.findOne({
+    email
+  });
   if (isUserExist) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User Already Exist");
+    throw new AppError(httpStatus.BAD_REQUEST, "User Already Exists");
   }
 
-  // hash password
+  // Hash the password
   const hashedPassword = await bcrypt.hash(
     password as string,
-    Number(envVars.BCRIPT_SOLT_ROUND)
+    Number(envVars.BCRIPT_SOLT_ROUND) // Adjust the salt rounds as per your environment
   );
-  
+
+  // Start a session for the transaction
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    // create user
+    // Create the user in the database
     const user = await User.create(
-      [{ email, password: hashedPassword, role, ...rest }],
+      [{
+        email,
+        password: hashedPassword,
+        phone,
+        ...rest,
+      }],
       { session }
     );
 
-    // find system/admin wallet
-    const adminWallet = await Wallet.findOne({ walletType: WalletType.SYSTEM }).session(session);
-    if (!adminWallet) throw new AppError(httpStatus.BAD_REQUEST, "System wallet not found");
+    // If role is 'AGENT', set status to PENDING
+    if (await(role === Role.AGENT)) {
+      await User.findByIdAndUpdate(
+         {_id: user[0]._id}, 
+        { agentStatus: AgentStatus.PENDING ,},
+        { new: true, runValidators: true, session }
+      );
+    }
 
+    // Find the system wallet
+    const adminWallet = await Wallet.findOne({ walletType: WalletType.SYSTEM }).session(session);
+    if (!adminWallet) {
+      throw new AppError(httpStatus.BAD_REQUEST, "System wallet not found");
+    }
+
+    // Check if there is enough balance in the system wallet
     if (adminWallet.balance < bonusBalance) {
       throw new AppError(httpStatus.BAD_REQUEST, "Not enough balance in system wallet");
     }
 
-    // deduct from system wallet
+    // Deduct the bonus from the system wallet
     adminWallet.balance -= bonusBalance;
     await adminWallet.save({ session });
 
-    // create user wallet with bonus balance
+    // Create a personal wallet for the user with the bonus balance
     const wallet = await Wallet.create(
       [{
         user: user[0]._id,
@@ -72,31 +94,35 @@ const createUser = async (payload: Partial<IUser>) => {
       { session }
     );
 
-    // record transaction (bonus credit)
+    // Record the bonus credit transaction
     await Transaction.create([{
       transactionId: `BONUS-${Date.now()}`,
       type: IType.BONUS,
       from: adminWallet._id,
       to: wallet[0]._id,
       amount: bonusBalance,
-      tranStatus:IStatus.COMPLETED,
+      tranStatus: IStatus.COMPLETED,
       initiatedBy: user[0]._id,
       notes: "Welcome bonus",
     }], { session });
 
+    // Commit the transaction
     await session.commitTransaction();
     session.endSession();
 
     return {
-      user: user[0],
-      wallet: wallet[0],
+      user: user[0],  // Return the created user
+      wallet: wallet[0],  // Return the created wallet
     };
+
   } catch (error) {
+    // Abort the transaction if there is an error
     await session.abortTransaction();
     session.endSession();
-    throw error;
+    throw error;  // Re-throw the error for the caller to handle
   }
 };
+
 
 
 
@@ -203,13 +229,78 @@ const getAllUsers = async (options: GetAllOptions = {}) => {
   };
 };
 
+// 
+  const getAllAgents = async (query: any) => {
+    const {
+      search,
+      location,
+      isActive = 'active',
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = query;
+
+    // Build filter object
+    const filter: any = { role: 'agent' };
+
+    // Add status filter if provided
+    if (isActive) {
+      filter.isActive = isActive;
+    }
+
+    // Add search filter (searches in name, email, phone)
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // Add location filter if provided
+    if (location) {
+      filter.location = { $regex: location, $options: 'i' };
+    }
+
+    // Calculate pagination
+    const skip = (Number(page) - 1) * Number(limit);
+     console.log(filter);
+    // Execute query with pagination and sorting
+    const agents = await User.find(filter)
+      .select('-password') // Exclude password
+      .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .lean();
+
+    // Get total count for pagination
+    const total = await User.countDocuments(filter);
+
+    if (!agents || agents.length === 0) {
+      throw new AppError(httpStatus.NOT_FOUND, 'No agents found');
+    }
+
+    return {
+      agents,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    };
+  };
+
+
 
 
 export const UserServices={
     createUser,
     getAllUsers,
     updateUser,
-    agentStatusUpdate
+    agentStatusUpdate,
+    getAllAgents
 
 
 }

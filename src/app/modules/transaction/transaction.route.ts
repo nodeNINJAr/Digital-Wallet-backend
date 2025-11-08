@@ -19,4 +19,6 @@ router.get("/",checkVerified(Role.ADMIN), TransactionController.getAllTransactio
 
 
 
+
+
 export const TransactionRoutes = router;

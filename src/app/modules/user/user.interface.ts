@@ -3,24 +3,24 @@
 import { Types } from "mongoose";
 
 export enum Role {
-    ADMIN="ADMIN",
-    USER="USER",
-    AGENT="AGENT"
+    ADMIN="admin",
+    USER="user",
+    AGENT="agent"
 }
 
 
 export enum AgentStatus {
-    PENDING="PENDING",
-    APPROVED="APPROVED",
-    SUSPENDED="SUSPENDED",
+    PENDING="pending",
+    APPROVED="approved",
+    SUSPENDED="suspended",
     INITIAL=""
 }
 
 
 export enum IsActive{
-    ACTIVE="ACTIVE",
-    INACTIVE="INACTIVE",
-    BLOCKED="BLOCKED"
+    ACTIVE="active",
+    INACTIVE="inactive",
+    BLOCKED="blocked"
 }
 
 

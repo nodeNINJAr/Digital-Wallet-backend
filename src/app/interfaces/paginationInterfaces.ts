@@ -6,7 +6,5 @@ export interface GetAllOptions {
   limit?: number;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
-  searchTerm?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
 }
-

@@ -10,9 +10,8 @@ import { NextFunction, Request, Response } from 'express';
 import { setAuthCookies } from '../../utils/setCookies';
 import { AuthServices } from './auth.services';
 import { JwtPayload } from 'jsonwebtoken';
-
-
-
+import { User } from '../user/user.model';
+import { Wallet } from '../wallet/wallet.model';
 
 
 
@@ -20,8 +19,7 @@ import { JwtPayload } from 'jsonwebtoken';
 const credentialsLogin = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
      //    
       passport.authenticate("local", async (err: any, user: any, info: any) => {
-        
-
+        // 
         if (err) {
             console.log("from err", err);
             return next(new AppError(401, err))
@@ -42,7 +40,7 @@ const credentialsLogin = catchAsync(async (req: Request, res: Response, next: Ne
         responseSender(res, {
             success: true,
             statusCode: httpStatus.OK,
-            message: "User Logged In Successfully",
+            message: `${rest.role} Logged In Successfully`,
             data: {
                 accessToken: userTokens.accessToken,
                 refreshToken: userTokens.refreshToken,
@@ -54,6 +52,52 @@ const credentialsLogin = catchAsync(async (req: Request, res: Response, next: Ne
 
 })
 
+
+// assuming you have a middleware that sets req.user from your JWT
+export const verifyUser = async (req: JwtPayload & Request, res: Response) => {
+  try {
+    const userEmail = req.user?.email;
+
+    if (!userEmail) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized. Token missing or invalid.',
+      });
+    }
+
+    // find user without password
+    const user = await User.findOne({ email: userEmail }).select('-password');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // get user's wallet info
+    const wallet = await Wallet.findOne({ user: user._id });
+
+    // merge user and wallet info (if any)
+    const walletBalanceCents = wallet?.balance ?? 0;
+    const userData = {
+      ...user.toObject(),
+      walletBalance: Number(walletBalanceCents) / 100,
+      walletId: wallet?._id || null,
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: `${user.role} verified successfully`,
+      data: userData,
+    });
+  } catch (error) {
+    console.error('Verify user error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
 
 
 // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
@@ -79,7 +123,6 @@ const getNewAccessTokens = catchAsync(async(req:Request, res:Response , next:Nex
 // 
 // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
 const userLogOut = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
-
     res.clearCookie("accessToken",{
     httpOnly:true,
     secure:false,
@@ -132,4 +175,5 @@ export const AuthControllers = {
       getNewAccessTokens,
       userLogOut,
       resetPassword,
+      verifyUser,
 }

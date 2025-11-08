@@ -33,7 +33,7 @@ export const seedAdmin =async()=>{
       //    
       const Admin = await User.create(payLoad);
       console.log("Admin Created Successfully! \n");
-    //   console.log(Admin);
+      
       
       await Wallet.create({
             user:Admin._id,

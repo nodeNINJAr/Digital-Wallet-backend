@@ -60,36 +60,47 @@ const withdrawMoney = catchAsync(async(req:Request, res:Response , next:NextFunc
 
 });
 
-
-
-
 // ** getMyTransactions
-const getMyTransactions = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
-    
-  //   
+export const getMyTransactions = catchAsync(async (req: Request, res: Response) => {
   const decodedToken = req.user;
+  const { page, limit, sortBy, sortOrder, type, status, dateFrom, dateTo, search } = req.query;
 
-  const { page, limit, sortBy, sortOrder, ...filters} = req.query;
- 
-  //   
-  const result = await TransactionServices.getMyTransactions(decodedToken as JwtPayload,
-    { 
+  const filters: Record<string, any> = {};
+  if (type && type !== 'all') filters.type = type;
+  if (status && status !== 'all') filters.tranStatus = status;
+
+  if (dateFrom || dateTo) {
+    filters.createdAt = {};
+    if (dateFrom) filters.createdAt.$gte = new Date(dateFrom as string);
+    if (dateTo) filters.createdAt.$lte = new Date(dateTo as string);
+  }
+
+  if (search) {
+    const regex = new RegExp(search as string, 'i'); // case-insensitive
+    filters.$or = [
+      { transactionId: regex },
+      { notes: regex },
+      { type: regex },
+    ];
+  }
+
+  const result = await TransactionServices.getMyTransactions(decodedToken as JwtPayload, {
     page: Number(page) || 1,
     limit: Number(limit) || 10,
-    sortBy: (sortBy as string) || "createdAt",
-    sortOrder: (sortOrder as "asc" | "desc") || "desc",
+    sortBy: (sortBy as string) || 'createdAt',
+    sortOrder: (sortOrder as 'asc' | 'desc') || 'desc',
     filters,
   });
- 
-  //
- responseSender(res, {
-   success:true,
-   statusCode:httpStatus.OK,
-   message:"Transaction retrived succesfully",
-   data:result
-})
 
+  return responseSender(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Transactions retrieved successfully',
+    data: result,
+  });
 });
+
+
 
 
 // ** getAllTransactions
@@ -122,4 +133,5 @@ export const TransactionController = {
       withdrawMoney,
       getMyTransactions,
       getAllTransactions,
+
 }
