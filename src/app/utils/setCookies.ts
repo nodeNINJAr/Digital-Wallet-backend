@@ -8,22 +8,23 @@ export interface AuthTokens{
 }
 
 
-export const setAuthCookies =(res:Response, tokenInfo:AuthTokens)=>{
-        // 
-        if(tokenInfo.accessToken){
-            // acces token set to cookie    
-               res.cookie("accessToken", tokenInfo.accessToken,{
-                 httpOnly:true,
-                 secure:false,
-               })    
-        }
-        // 
-        if(tokenInfo.refreshToken){   
-            // refrsh token set to cookies
-            res.cookie("refreshToken", tokenInfo.refreshToken,{
-                httpOnly:true,
-                secure:false,
-            })    
+export const setAuthCookies = (res: Response, tokenInfo: AuthTokens) => {
+  const isProduction = process.env.NODE_ENV === 'production';
 
-        }
-}
+  if (tokenInfo.accessToken) {
+    res.cookie("accessToken", tokenInfo.accessToken, {
+      httpOnly: true,
+      secure: isProduction,            // only true in production (HTTPS)
+      sameSite: isProduction ? "none" : "lax", // "none" allows cross-site cookies                      // send cookie for all routes
+    });
+  }
+
+  if (tokenInfo.refreshToken) {
+    res.cookie("refreshToken", tokenInfo.refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+
+    });
+  }
+};

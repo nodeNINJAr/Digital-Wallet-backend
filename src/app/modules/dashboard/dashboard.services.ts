@@ -23,11 +23,11 @@ const getUserDashboardStats = async (user:JwtPayload) => {
   const monthlyTransactions = transactions.filter(t => new Date(t?.createdAt).getMonth() === thisMonth);
   const monthlyRevenue = monthlyTransactions.reduce((acc, t) => acc + t.amount, 0) /100;
   const moneySent = transactions
-    .filter(t => [IType.SEND, IType.WITHDRAW].includes(t.type))
+    .filter(t => [IType.SEND, IType.CASH_OUT].includes(t.type))
     .reduce((acc, t) => acc + t.amount, 0)/100;
 
   const moneyReceived = transactions
-    .filter(t => [IType.CASH_IN, IType.CASH_OUT, IType.BONUS].includes(t.type))
+    .filter(t => [IType.CASH_IN, IType.BONUS].includes(t.type))
     .reduce((acc, t) => acc + t.amount, 0) /100;
 
   return { balance, monthlyRevenue, moneySent, moneyReceived };

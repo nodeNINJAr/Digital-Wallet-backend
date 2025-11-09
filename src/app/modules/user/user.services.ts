@@ -351,7 +351,7 @@ const getUsersWithWalletAndTransactions = async (options: GetAllOptions = {}) =>
   };
 
 
-  // get all users
+  // get all users on agent end
   // 
   const getAllusersAg = async (query: any) => {
     const {
