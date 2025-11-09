@@ -14,8 +14,6 @@ import { GetAllOptions } from "../../interfaces/paginationInterfaces";
 
 
 
-
-
 // 
 const createUser = async (payload: Partial<IUser>) => {
 
@@ -125,8 +123,6 @@ const createUser = async (payload: Partial<IUser>) => {
 
 
 
-
-
 // ** update user
 const updateUser = async(userId: string, payload: Partial<IUser>)=>{
     // 
@@ -186,51 +182,178 @@ const agentStatusUpdate = async (decodedToken: JwtPayload) => {
 
 
 // ** get all users
-const getAllUsers = async (options: GetAllOptions = {}) => {
+const getUsersWithWalletAndTransactions = async (options: GetAllOptions = {}) => {
   const {
     page = 1,
     limit = 10,
     sortBy = "createdAt",
     sortOrder = "desc",
     searchTerm,
+    agentStatus, // Keep this for filtering
     filters = {},
   } = options;
 
   const skip = (page - 1) * limit;
 
-  // query
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const query: Record<string, any> = { ...filters };
+  // Filter only regular users (not agents or admins)
+  const query: Record<string, any> = {...filters };
 
-  // add text search across fields
+  // Add agentStatus filter directly to query if provided
+  if (agentStatus) {
+    query.agentStatus = agentStatus;
+  }
+
+  // Optional text search
   if (searchTerm) {
     query.$or = [
       { name: { $regex: searchTerm, $options: "i" } },
       { email: { $regex: searchTerm, $options: "i" } },
-      { phone: { $regex: searchTerm, $options: "i" } },
+      { phone: { $regex: searchTerm} },
     ];
   }
 
+  // Fetch users
   const users = await User.find(query)
     .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
     .skip(skip)
     .limit(limit);
 
-  const totalUser = await User.countDocuments(query);
+  // Enrich each user
+  const enrichedUsers = await Promise.all(
+    users.map(async (user) => {
+      const wallet = await Wallet.findOne({ user: user._id });
+
+      const transactionsCount = wallet
+        ? await Transaction.countDocuments({
+            $or: [{ from: wallet._id }, { to: wallet._id }],
+          })
+        : 0;
+      
+     const balance = wallet && wallet?.balance /100 || 0; 
+
+      return {
+        userId: user._id,
+        name: user?.name,
+        email: user?.email,
+        phone: user?.phone,
+        balance,
+        agentStatus: user?.agentStatus || "", // Get agentStatus from user
+        status: user?.isActive || "",
+        joinedDate: user?.createdAt,
+        transactions: transactionsCount,
+      };
+    })
+  );
+
+  const totalUsers = await User.countDocuments(query);
 
   return {
-    data: users,
+    enrichedUsers,
+    total: totalUsers,
     meta: {
       page,
       limit,
-      total: totalUser,
-      totalPages: Math.ceil(totalUser / limit),
+      total: totalUsers,
+      totalPages: Math.ceil(totalUsers / limit),
     },
   };
 };
 
+
+
 // 
-  const getAllAgents = async (query: any) => {
+  const getAllAgents = async (options: GetAllOptions = {}) => {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+      searchTerm,
+      status, // Add this
+      filters = {},
+    } = options;
+
+    const skip = (page - 1) * limit;
+
+    // Filter only agents
+    const query: Record<string, any> = { role: "agent", ...filters };
+
+    // Optional text search
+    if (searchTerm) {
+      query.$or = [
+        { name: { $regex: searchTerm, $options: "i" } },
+        { email: { $regex: searchTerm, $options: "i" } },
+        { phone: { $regex: searchTerm, $options: "i" } },
+      ];
+    }
+
+    // Fetch agents
+    const agents = await User.find(query)
+      .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
+      .skip(skip)
+      .limit(limit);
+
+    // Enrich each agent
+    let enrichedAgents = await Promise.all(
+      agents.map(async (agent) => {
+        const wallet = await Wallet.findOne({ user: agent._id });
+
+        const transactionsCount = wallet
+          ? await Transaction.countDocuments({
+              $or: [{ from: wallet._id }, { to: wallet._id }],
+            })
+          : 0;
+
+        let commission = 0;
+        if (wallet) {
+          const commissionData = await Transaction.aggregate([
+            {
+              $match: {
+                $or: [{ from: wallet._id }, { to: wallet._id }],
+                type: "commission",
+              },
+            },
+            { $group: { _id: null, total: { $sum: "$amount" } } },
+          ]);
+          commission = commissionData[0]?.total || 0;
+        }
+
+        return {
+          agentId: agent._id,
+          name: agent.name,
+          email: agent.email,
+          phone: agent.phone,
+          commission: parseFloat(commission.toFixed(2)),
+          status: wallet?.status || "ACTIVE",
+          joinedDate: agent.createdAt,
+          transactions: transactionsCount,
+        };
+      })
+    );
+
+    // Apply status filter AFTER enrichment (since status comes from wallet)
+    if (status) {
+      enrichedAgents = enrichedAgents.filter(agent => agent.status === status);
+    }
+
+    const totalAgents = await User.countDocuments(query);
+
+    return {
+      enrichedAgents,
+      total: status ? enrichedAgents.length : totalAgents, // Adjust total for filtered results
+      meta: {
+        page,
+        limit,
+        total: status ? enrichedAgents.length : totalAgents,
+        totalPages: Math.ceil((status ? enrichedAgents.length : totalAgents) / limit),
+      },
+    };
+  };
+
+
+  // get all users
+  // 
+  const getAllusersAg = async (query: any) => {
     const {
       search,
       location,
@@ -242,7 +365,7 @@ const getAllUsers = async (options: GetAllOptions = {}) => {
     } = query;
 
     // Build filter object
-    const filter: any = { role: 'agent' };
+    const filter: any = { role: 'user' };
 
     // Add status filter if provided
     if (isActive) {
@@ -265,9 +388,8 @@ const getAllUsers = async (options: GetAllOptions = {}) => {
 
     // Calculate pagination
     const skip = (Number(page) - 1) * Number(limit);
-     console.log(filter);
     // Execute query with pagination and sorting
-    const agents = await User.find(filter)
+    const users = await User.find(filter)
       .select('-password') // Exclude password
       .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
       .skip(skip)
@@ -277,12 +399,12 @@ const getAllUsers = async (options: GetAllOptions = {}) => {
     // Get total count for pagination
     const total = await User.countDocuments(filter);
 
-    if (!agents || agents.length === 0) {
+    if (!users || users.length === 0) {
       throw new AppError(httpStatus.NOT_FOUND, 'No agents found');
     }
 
     return {
-      agents,
+      users,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -294,13 +416,13 @@ const getAllUsers = async (options: GetAllOptions = {}) => {
 
 
 
-
 export const UserServices={
     createUser,
-    getAllUsers,
+    getUsersWithWalletAndTransactions,
     updateUser,
     agentStatusUpdate,
-    getAllAgents
+    getAllAgents,
+    getAllusersAg
 
 
 }

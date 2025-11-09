@@ -15,8 +15,10 @@ const router = Router();
 // **user router **
 router.post("/register",validationRequest(createUserZodSchema), UserControllers.createUser);
 router.patch("/update/:id",checkVerified(...Object.values(Role)),validationRequest(updateUserZodSchema), UserControllers.updateUser);
-router.get("/", UserControllers.getAllUsers);
+router.get("/all", UserControllers.getTransactionsWithUserAndWallet);
 router.get("/agents", UserControllers.getAllAgents);
+// 
+router.get("/", UserControllers.getAllusersAg);
 router.patch("/agent/apply",checkVerified(Role.USER), UserControllers.agentStatusUpdate);
 // **
 

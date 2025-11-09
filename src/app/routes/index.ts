@@ -26,7 +26,7 @@ const moduleRoutes = [
     route:TransactionRoutes,
    },
           {
-    path:"/user/dashboard",
+    path:"/dashboard/stats",
     route:DashboardRoutes,
    },
    

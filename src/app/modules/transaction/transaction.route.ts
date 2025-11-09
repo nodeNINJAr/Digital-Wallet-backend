@@ -11,10 +11,10 @@ const router = Router();
 
 // **wallet router **
 router.post("/send",checkVerified(Role.USER), TransactionController.sendMoney);
-router.post("/withdraw",checkVerified(Role.USER), TransactionController.withdrawMoney);
+router.post("/cash-out",checkVerified(Role.USER), TransactionController.cashOut);
 router.post("/cash-in",checkVerified(Role.AGENT), TransactionController.cashIn);
-router.get("/me",checkVerified(Role.AGENT,Role.USER), TransactionController.getMyTransactions);
-router.get("/",checkVerified(Role.ADMIN), TransactionController.getAllTransactions); //only admin can access
+router.post("/withdraw",checkVerified(Role.AGENT), TransactionController.withdraw);
+router.get("/all",checkVerified(...Object.values(Role)), TransactionController.getAllTransactions);
 
 
 

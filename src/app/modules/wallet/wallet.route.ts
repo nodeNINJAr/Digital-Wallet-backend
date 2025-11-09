@@ -14,6 +14,8 @@ router.get("/me", checkVerified(Role.AGENT, Role.USER), WalletController.getWall
 router.patch("/block/:id",checkVerified(Role.ADMIN), WalletController.updateWalletStatus);
 router.patch("/agents/:id/approve",checkVerified(Role.ADMIN), WalletController.updateWalletType);
 router.patch("/agents/:id/suspend",checkVerified(Role.ADMIN), WalletController.suspendAgentStatus);
+router.patch("/agents/:id/block",checkVerified(Role.ADMIN), WalletController.blockWalletStatus);
+router.patch("/agents/:id/active",checkVerified(Role.ADMIN), WalletController.ActiveWalletStatus);
 
 
 

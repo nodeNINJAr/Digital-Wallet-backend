@@ -6,5 +6,8 @@ export interface GetAllOptions {
   limit?: number;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
+  searchTerm?: string;
+  agentStatus?:string;
   filters?: Record<string, unknown>;
+  status?:string;
 }

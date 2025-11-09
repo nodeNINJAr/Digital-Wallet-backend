@@ -55,7 +55,7 @@ const updateWalletStatus = catchAsync(async(req:Request, res:Response , next:Nex
 
 const updateWalletType = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
 
-  const result = await WalletServices.updateWalletType(req.params.id, req.body);
+  const result = await WalletServices.updateWalletType(req.params.id);
  
   //
  responseSender(res, {
@@ -73,7 +73,6 @@ const updateWalletType = catchAsync(async(req:Request, res:Response , next:NextF
 const suspendAgentStatus = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
 
   const result = await WalletServices.updateWalletType(req.params.id, req.body);
- 
   //
  responseSender(res, {
    success:true,
@@ -84,6 +83,35 @@ const suspendAgentStatus = catchAsync(async(req:Request, res:Response , next:Nex
 
 })
 
+// ** block status
+const blockWalletStatus = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
+  const result = await WalletServices.blockWallet(req.params.id);
+ 
+  //
+ responseSender(res, {
+   success:true,
+   statusCode:httpStatus.CREATED,
+   message:`Agent gentally Blocked by admin due to some reason`,
+   data:result
+})
+
+})
+
+// ** active status
+const ActiveWalletStatus = catchAsync(async(req:Request, res:Response , next:NextFunction)=>{
+  const result = await WalletServices.ActiveWallet(req.params.id);
+ 
+  //
+ responseSender(res, {
+   success:true,
+   statusCode:httpStatus.CREATED,
+   message:`Yeah admin Active Your account`,
+   data:result
+})
+
+})
+
+
 
 
 
@@ -92,5 +120,8 @@ export const WalletController ={
     getWallet,
     updateWalletStatus,
     updateWalletType,
-    suspendAgentStatus
+    suspendAgentStatus,
+    blockWalletStatus,
+    ActiveWalletStatus
+
 }

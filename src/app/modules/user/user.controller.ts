@@ -64,10 +64,10 @@ const agentStatusUpdate = catchAsync(async(req:Request, res:Response , next:Next
 
 
 // ** get alluser
-const getAllUsers = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+const getTransactionsWithUserAndWallet = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const { page, limit, sortBy, sortOrder, searchTerm, ...filters } = req.query;
 
-  const result = await UserServices.getAllUsers({
+  const result = await UserServices.getUsersWithWalletAndTransactions({
     page: Number(page) || 1,
     limit: Number(limit) || 10,
     sortBy: (sortBy as string) || "createdAt",
@@ -80,7 +80,7 @@ const getAllUsers = catchAsync(async (req: Request, res: Response, next: NextFun
     success: true,
     statusCode: httpStatus.OK,
     message: "Users retrieved successfully",
-    data: result.data,
+    data: result.enrichedUsers,
     meta: result.meta,
   });
 });
@@ -99,11 +99,26 @@ const getAllAgents = catchAsync(async (req: Request, res: Response, next: NextFu
 
 
 
+// get all user for agent
+const getAllusersAg = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+  const result = await UserServices.getAllusersAg(req.query);
+
+  responseSender(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Users retrieved successfully",
+    data: result,
+  });
+});
+
+
+
 export const UserControllers ={
     createUser,
-    getAllUsers,
+    getTransactionsWithUserAndWallet,
     updateUser,
     agentStatusUpdate,
-    getAllAgents
+    getAllAgents,
+    getAllusersAg
 
 }

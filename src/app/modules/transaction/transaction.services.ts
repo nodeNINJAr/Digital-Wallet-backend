@@ -8,12 +8,7 @@ import { startSession } from "mongoose";
 import { Transaction } from "./transaction.model";
 import { User } from "../user/user.model";
 import { toPaisa } from "../../utils/money";
-import { GetAllOptions } from "../../interfaces/paginationInterfaces";
 import mongoose from "mongoose";
-
-
-
-
 
 
 // ** send money
@@ -101,16 +96,13 @@ return transaction[0]
 
 }
 
-
-
-
 // ** cash in
 const cashIn = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
     // 
     const session =await startSession();
     session.startTransaction();
     // 
-    const {to, amount} = payload; 
+    const {to, amount, notes} = payload; 
      // amount in paisa
     const amountInPaisa = toPaisa(amount as number);
     const commission = Math.floor((amountInPaisa * 2) / 1000); //2 taka commition in 1000 tka cash in
@@ -167,7 +159,8 @@ const cashIn = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
           fee:0,
           commission:commission,
           tranStatus:IStatus.COMPLETED,
-          initiatedBy:senderWallet._id
+          initiatedBy:senderWallet._id,
+          notes:notes,
          },
     ],
     { session }
@@ -180,11 +173,8 @@ return transaction[0]
 
 }
 
-
-
-
-// * withdrow money
-const withdrawMoney = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
+// * cashout money
+const cashOut = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
          // 
     const session =await startSession();
     session.startTransaction();
@@ -218,7 +208,7 @@ const withdrawMoney = async(decodedToken:JwtPayload, payload:Partial<ITransactio
     }
     // amount check
     if(amountInPaisa < 5000){
-        throw new AppError(httpStatus.BAD_REQUEST,"Minimum withdrow is 50 taka")
+        throw new AppError(httpStatus.BAD_REQUEST,"Minimum cashOut is 50 taka")
     }
     // validation 4
     if((senderWallet.balance ?? 0) < (amountInPaisa ?? 0)){
@@ -248,7 +238,7 @@ const withdrawMoney = async(decodedToken:JwtPayload, payload:Partial<ITransactio
     const transaction = await Transaction.create([
          {
           transactionId: `TXN-${Date.now()}`,
-          type:IType.WITHDRAW,
+          type:IType.CASH_OUT,
           from:senderWallet._id,
           to:agentWallet._id,
           amount:amountInPaisa,
@@ -268,11 +258,15 @@ const withdrawMoney = async(decodedToken:JwtPayload, payload:Partial<ITransactio
     
 }
 
+// * cashout money
+const withdraw = async(decodedToken:JwtPayload, payload:Partial<ITransaction>)=>{
+     return `${decodedToken} user wait we will connect to you ${payload.to}`
+    
+}
 
 
-
-// * get my transaction
-const getMyTransactions = async (
+// * get all transaction role based
+const getTransactions = async (
   decodedToken: JwtPayload,
   options: {
     page?: number;
@@ -285,29 +279,37 @@ const getMyTransactions = async (
 ) => {
   const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc', filters = {}, search } = options;
   const skip = (page - 1) * limit;
+
   // Find user
   const user = await User.findById(decodedToken.userId);
   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User Not Found');
 
-  // Find wallet
-  const wallet = await Wallet.findOne({ user: user._id });
-  if (!wallet) throw new AppError(httpStatus.NOT_FOUND, 'Wallet Not Found');
-  if (wallet.status === 'BLOCKED') throw new AppError(httpStatus.BAD_REQUEST, 'Wallet is blocked');
-  
-  const objectId = new mongoose.Types.ObjectId(wallet?._id);
-  // Build query
-  const query: any = {
-   $or: [{ from: objectId }, { to: objectId }],
-    ...filters
-  };
+  // If admin → show all transactions (skip wallet check)
+  let query: any = { $and: [{ ...filters }] };
 
-  // Add search
+  if (user.role !== 'admin') {
+    // Find wallet
+    const wallet = await Wallet.findOne({ user: user._id });
+    if (!wallet) throw new AppError(httpStatus.NOT_FOUND, 'Wallet Not Found');
+    if (wallet.status === 'BLOCKED') throw new AppError(httpStatus.BAD_REQUEST, 'Wallet is blocked');
+
+    const objectId = new mongoose.Types.ObjectId(wallet._id);
+
+    // Restrict to user's transactions
+    query.$and.unshift({
+      $or: [{ from: objectId }, { to: objectId }],
+    });
+  }
+
+  // Add search conditions
   if (search) {
-    query.$or.push(
-      { transactionId: { $regex: search, $options: 'i' } },
-      { type: { $regex: search, $options: 'i' } },
-      { notes: { $regex: search, $options: 'i' } }
-    );
+    query.$and.push({
+      $or: [
+        { transactionId: { $regex: search, $options: 'i' } },
+        { type: { $regex: search, $options: 'i' } },
+        { notes: { $regex: search, $options: 'i' } },
+      ],
+    });
   }
 
   // Fetch transactions
@@ -332,52 +334,14 @@ const getMyTransactions = async (
 
 
 
-// * get all transaction
-const getAllTransactions = async (options:GetAllOptions) => {
-
-// 
-const {
-    page = 1,
-    limit = 10,
-    sortBy = "createdAt",
-    sortOrder = "desc",
-    filters = {},
- } = options;
-
-    
-  const skip = (page - 1) * limit;
-
-    // Build query
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const query: Record<string, any> = { ...filters };
-
-  const transactions = await Transaction.find(query)
-    .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
-    .skip(skip)
-    .limit(limit);
-
-  const total = await Transaction.countDocuments(query);
-
-  return {
-    data: transactions,
-    meta: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
-};
-
-
-
 
 
 export const TransactionServices = {
         sendMoney,
         cashIn,
-        getMyTransactions,
-        getAllTransactions,
-        withdrawMoney,
+        getTransactions,
+        cashOut,
+        withdraw,
+        
 
 }

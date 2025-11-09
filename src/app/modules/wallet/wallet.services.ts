@@ -44,7 +44,7 @@ const updateWalletStatus =async(userId:string, payload: Partial<IWallet>)=>{
 
 
 //  wallettype
-const updateWalletType =async(userId:string, payload: Partial<IWallet>)=>{
+const updateWalletType =async(userId:string)=>{
     const isWalletExists = await Wallet.findOne({user:userId});
     const user = await User.findById(userId);
 
@@ -62,9 +62,9 @@ const updateWalletType =async(userId:string, payload: Partial<IWallet>)=>{
     }
     
 
-    const result = await Wallet.findOneAndUpdate({user:userId},payload, {new:true, runValidators:true})
+    const result = await Wallet.findOneAndUpdate({user:userId},{walletType:"AGENT"}, {new:true, runValidators:true})
 
-    const updatedRole = await User.findByIdAndUpdate(userId,{role:payload.walletType, agentStatus:AgentStatus.APPROVED}, {new:true, runValidators:true})
+    const updatedRole = await User.findByIdAndUpdate(userId,{role:"agent", agentStatus:AgentStatus.APPROVED}, {new:true, runValidators:true})
 
     // 
     const data  = {
@@ -81,7 +81,22 @@ const updateWalletType =async(userId:string, payload: Partial<IWallet>)=>{
 const suspendAgentStatus=async(userId:string)=>{
     // 
     const updatedRole = await User.findByIdAndUpdate(userId,{agentStatus:AgentStatus.SUSPENDED}, {new:true, runValidators:true})
-        return updatedRole
+    return updatedRole
+}
+
+
+// agent suspend
+const blockWallet = async(agentId:string)=>{
+    // 
+    const updatedStatus = await Wallet.findOneAndUpdate({user:agentId},{status:Status.BLOCKED}, {new:true, runValidators:true})
+    return updatedStatus
+}
+
+// agent suspend
+const ActiveWallet =async(agentId:string)=>{
+    // 
+    const updatedStatus = await Wallet.findOneAndUpdate({user:agentId},{status:Status.ACTIVE}, {new:true, runValidators:true})
+    return updatedStatus
 }
 
 
@@ -91,6 +106,7 @@ export const WalletServices ={
     getWallet,
     updateWalletStatus,
     updateWalletType,
-    suspendAgentStatus
-
+    suspendAgentStatus,
+    blockWallet,
+    ActiveWallet
 }
